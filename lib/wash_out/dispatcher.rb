@@ -51,11 +51,7 @@ module WashOut
       @_params = HashWithIndifferentAccess.new
 
       action_spec[:in].each do |param|
-        key = param.name.to_sym
-
-        if xml_data.has_key? key
-          @_params[param.name] = param.load(xml_data, key)
-        end
+        @_params[param.name] = param.load(xml_data, param.name.to_sym)
       end
     end
 
@@ -73,30 +69,53 @@ module WashOut
       @namespace  = NAMESPACE
       @operation  = soap_action = request.env['wash_out.soap_action']
       action_spec = self.class.soap_actions[soap_action][:out].clone
-
       result = { 'value' => result } unless result.is_a? Hash
       result = HashWithIndifferentAccess.new(result)
-
-      inject = lambda {|data, source_spec|
-        spec = source_spec.clone
-
-        spec.each_with_index do |param, i|
-          if param.struct? && !param.multiplied
-            spec[i].map = inject.call(data[param.name], param.map)
-          elsif param.struct? && param.multiplied
-            spec[i].map = data[param.name].map{|e| inject.call(e, param.map)}
+      inject = lambda {|data, spec|
+        spec.each do |param|
+          if param.struct?
+            inject.call(data[param.name], param.map)
           else
-            spec[i] = param.flat_copy
-            spec[i].value = data[param.name]
+            param.value = data[param.name]
           end
         end
-
-        return spec
       }
-
+	
       render :template => 'wash_with_soap/response',
              :locals => { :result => inject.call(result, action_spec) }
     end
+	
+    # Render a signed SOAP response	
+    def _render_sign_soap(result, options)
+      @namespace  = NAMESPACE
+      @operation  = soap_action = request.env['wash_out.soap_action']
+      action_spec = self.class.soap_actions[soap_action][:out].clone
+      result = { 'value' => result } unless result.is_a? Hash
+      result = HashWithIndifferentAccess.new(result)
+      inject = lambda {|data, spec|
+        spec.each do |param|
+          if param.struct?
+            inject.call(data[param.name], param.map)
+          else
+            param.value = data[param.name]
+          end
+        end
+      }
+	soap_response = render_to_string :template => 'wash_with_soap/response',
+             :locals => { :result => inject.call(result, action_spec) }
+	soap_response.gsub!(/\n/m, '\n')
+	soap_response.gsub!(/"/, '\"')
+
+	# read the output of a program
+	result = ''
+	IO.popen("echo \"#{soap_response}\" | /home/lena/Documents/soap/tt.php") {|readme|
+	    while s = readme.gets do
+		result = result + s	
+	    end
+	}
+	render :xml => result
+    end
+		
 
     # This action is a fallback for all undefined SOAP actions.
     def _invalid_action

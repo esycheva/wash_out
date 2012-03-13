@@ -4,6 +4,11 @@ require 'wash_out/dispatcher'
 require 'wash_out/soap'
 require 'wash_out/router'
 
+# php scripts
+require 'wash_out/ws_security_php/soap-wsse.php'
+require 'wash_out/ws_security_php/xmlseclibs.php'
+require 'wash_out/ws_security_php/sign_soap.php'
+
 module ActionDispatch::Routing
   class Mapper
     # Adds the routes for a SOAP endpoint at +controller+.
