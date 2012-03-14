@@ -110,9 +110,13 @@ module WashOut
 	mydir = File.dirname(__FILE__)
 	php_script_file = mydir + "/ws_security_php/sign_soap.php"
 
+	# keys filename from rails_app/config/*.yml
+	private_key_path = WS_SECURITY_SETTINGS["portal_private_key"]
+	cert_path = WS_SECURITY_SETTINGS["cert"]
+
 	# read the output of a program
 	result = ''
-	IO.popen("echo \"#{soap_response}\" | #{php_script_file} /home/lena/Documents/soap/asr.pem /home/lena/Documents/soap/asr.crt" ) {|readme|
+	IO.popen("echo \"#{soap_response}\" | #{php_script_file} #{private_key_path} #{cert_path}" ) {|readme|
 	    while s = readme.gets do
 		result = result + s	
 	    end
