@@ -112,7 +112,7 @@ module WashOut
 
 	# read the output of a program
 	result = ''
-	IO.popen("echo \"#{soap_response}\" | #{php_script_file}") {|readme|
+	IO.popen("echo \"#{soap_response}\" | #{php_script_file} /home/lena/Documents/soap/asr.pem /home/lena/Documents/soap/asr.crt" ) {|readme|
 	    while s = readme.gets do
 		result = result + s	
 	    end

@@ -2,9 +2,8 @@
 <?php
 require('soap-wsse.php');
 
-define('PRIVATE_KEY', '/home/lena/Documents/soap/test.pem');
-define('CERT_FILE', '/home/lena/Documents/soap/test.crt');
-define('SERVICE_CERT', '/home/lena/Documents/soap/test.crt');
+$private_key = $argv[1];
+$cert_file = $argv[2];
 
 /* Read from stdin */
 $text = '';
@@ -24,14 +23,14 @@ $objWSSE = new WSSESoap($doc);
 $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA1, array('type'=>'private'));
         
 /* load the private key from file - last arg is bool if key in file (TRUE) or is string (FALSE) */
-$objKey->loadKey(PRIVATE_KEY, TRUE);
+$objKey->loadKey($private_key, TRUE);
         
 /* Sign the message - also signs appropraite WS-Security items */
 $options = array("insertBefore" => FALSE);
 $objWSSE->signSoapDoc($objKey, $options);
         
 /* Add certificate (BinarySecurityToken) to the message */
-$token = $objWSSE->addBinaryToken(file_get_contents(CERT_FILE));
+$token = $objWSSE->addBinaryToken(file_get_contents($cert_file));
         
 /* Attach pointer to Signature */
 $objWSSE->attachTokentoSig($token);
