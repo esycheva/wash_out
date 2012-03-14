@@ -105,10 +105,14 @@ module WashOut
              :locals => { :result => inject.call(result, action_spec) }
 	soap_response.gsub!(/\n/m, '\n')
 	soap_response.gsub!(/"/, '\"')
+	
+	# php script path
+	mydir = File.dirname(__File__)
+	php_script_file = mydir + "/ws_security_php/sign_soap.php"
 
 	# read the output of a program
 	result = ''
-	IO.popen("echo \"#{soap_response}\" | /home/lena/Documents/soap/tt.php") {|readme|
+	IO.popen("echo \"#{soap_response}\" | #{php_script_file}") {|readme|
 	    while s = readme.gets do
 		result = result + s	
 	    end
