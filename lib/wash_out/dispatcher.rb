@@ -107,7 +107,7 @@ module WashOut
 	soap_response.gsub!(/"/, '\"')
 	
 	# php script path
-	mydir = File.dirname(__File__)
+	mydir = File.dirname(__FILE__)
 	php_script_file = mydir + "/ws_security_php/sign_soap.php"
 
 	# read the output of a program

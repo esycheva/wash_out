@@ -25,6 +25,6 @@ ActionController::Renderers.add :soap do |what, options|
 end
 
 Mime::Type.register "application/soap+xml", :sign_soap
-ActionController::Renderers.add :soap do |what, options|
+ActionController::Renderers.add :sign_soap do |what, options|
   _render_sign_soap(what, options)
 end
