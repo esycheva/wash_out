@@ -25,7 +25,7 @@ module WashOut
       Nori.strip_namespaces = true
       Nori.convert_tags_to { |tag| tag.snakecase.to_sym }
 
-      params = Nori.parse(request.body)
+      params = Nori.parse(request.body.read)
       xml_data = params[:envelope][:body][soap_action.underscore.to_sym] || {}
 
       strip_empty_nodes = lambda{|hash|
