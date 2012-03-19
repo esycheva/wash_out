@@ -122,6 +122,11 @@ result.to_hash # => {:value=>"123abc"}
 
 Take a look at [WashOut sample application](https://github.com/roundlake/wash_out-sample).
 
+Namespace
+---------
+
+Use `config.action_view.washout_namespace = ..` inside your environment configuration to modify SOAP namespace. The default value is: `urn:WashOut`.
+
 License
 -------
 

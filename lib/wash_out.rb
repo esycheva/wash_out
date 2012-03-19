@@ -20,11 +20,21 @@ module ActionDispatch::Routing
 end
 
 Mime::Type.register "application/soap+xml", :soap
+
 ActionController::Renderers.add :soap do |what, options|
   _render_soap(what, options)
 end
+
 
 Mime::Type.register "application/soap+xml", :sign_soap
 ActionController::Renderers.add :sign_soap do |what, options|
   _render_sign_soap(what, options)
 end
+
+module ActionView
+  class Base
+    cattr_accessor :washout_namespace
+    @@washout_namespace = false
+  end
+end
+
