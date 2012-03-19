@@ -15,6 +15,7 @@ module WashOut
     end
 
     # This filter parses the SOAP request and puts it into +params+ array.
+    # This filter parses the SOAP request and puts it into +params+ array.
     def _parse_soap_parameters
       soap_action = request.env['wash_out.soap_action']
       action_spec = self.class.soap_actions[soap_action]
@@ -53,7 +54,11 @@ module WashOut
       @_params = HashWithIndifferentAccess.new
 
       action_spec[:in].each do |param|
-        @_params[param.name] = param.load(xml_data, param.name.to_sym)
+        key = param.name.to_sym
+
+        if xml_data.has_key? key
+          @_params[param.name] = param.load(xml_data, key)
+        end
       end
     end
 
