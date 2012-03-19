@@ -94,7 +94,7 @@ module WashOut
 	
     # Render a signed SOAP response	
     def _render_sign_soap(result, options)
-      @namespace  = NAMESPACE
+      @namespace  = namespace
       @operation  = soap_action = request.env['wash_out.soap_action']
       action_spec = self.class.soap_actions[soap_action][:out].clone
       result = { 'value' => result } unless result.is_a? Hash
