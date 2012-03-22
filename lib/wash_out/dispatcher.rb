@@ -5,16 +5,13 @@ module WashOut
   # as a SOAP endpoint. It includes actions for generating WSDL and handling
   # SOAP requests.
   module Dispatcher
+    # Default Type namespace
+    NAMESPACE = 'urn:WashOut'
+
     # A SOAPError exception can be raised to return a correct SOAP error
     # response.
     class SOAPError < Exception; end
 
-    def namespace
-      namespace   = ActionView::Base.washout_namespace if defined?(ActionView::Base)
-      namespace ||= 'urn:WashOut'
-    end
-
-    # This filter parses the SOAP request and puts it into +params+ array.
     # This filter parses the SOAP request and puts it into +params+ array.
     def _parse_soap_parameters
       soap_action = request.env['wash_out.soap_action']
@@ -54,18 +51,14 @@ module WashOut
       @_params = HashWithIndifferentAccess.new
 
       action_spec[:in].each do |param|
-        key = param.name.to_sym
-
-        if xml_data.has_key? key
-          @_params[param.name] = param.load(xml_data, key)
-        end
+        @_params[param.name] = param.load(xml_data, param.name.to_sym)
       end
     end
 
     # This action generates the WSDL for defined SOAP methods.
     def _generate_wsdl
       @map       = self.class.soap_actions
-      @namespace = namespace
+      @namespace = NAMESPACE
       @name      = controller_path.gsub('/', '_')
 
       render :template => 'wash_with_soap/wsdl'
@@ -73,7 +66,7 @@ module WashOut
 
     # Render a SOAP response.
     def _render_soap(result, options)
-      @namespace  = namespace
+      @namespace  = NAMESPACE
       @operation  = soap_action = request.env['wash_out.soap_action']
       action_spec = self.class.soap_actions[soap_action][:out].clone
       result = { 'value' => result } unless result.is_a? Hash
@@ -94,7 +87,7 @@ module WashOut
 	
     # Render a signed SOAP response	
     def _render_sign_soap(result, options)
-      @namespace  = namespace
+      @namespace  = NAMESPACE
       @operation  = soap_action = request.env['wash_out.soap_action']
       action_spec = self.class.soap_actions[soap_action][:out].clone
       result = { 'value' => result } unless result.is_a? Hash
@@ -124,6 +117,88 @@ module WashOut
 	# read the output of a program
 	result = ''
 	IO.popen("echo \"#{soap_response}\" | #{php_script_file} #{private_key_path} #{cert_path}" ) {|readme|
+	    while s = readme.gets do
+		result = result + s	
+	    end
+	}
+	render :xml => result
+    end
+
+    # Render a ecrypted SOAP response	
+    def _render_encrypt_soap(result, options)
+      @namespace  = NAMESPACE
+      @operation  = soap_action = request.env['wash_out.soap_action']
+      action_spec = self.class.soap_actions[soap_action][:out].clone
+      result = { 'value' => result } unless result.is_a? Hash
+      result = HashWithIndifferentAccess.new(result)
+      inject = lambda {|data, spec|
+        spec.each do |param|
+          if param.struct?
+            inject.call(data[param.name], param.map)
+          else
+            param.value = data[param.name]
+          end
+        end
+      }
+	soap_response = render_to_string :template => 'wash_with_soap/response',
+             :locals => { :result => inject.call(result, action_spec) }
+	soap_response.gsub!(/\n/m, '\n')
+	soap_response.gsub!(/"/, '\"')
+	
+	# php script path
+	mydir = File.dirname(__FILE__)
+	php_script_file = mydir + "/ws_security_php/encrypt_soap.php"
+
+	# keys filename from rails_app/config/*.yml
+	private_key_path = WS_SECURITY_SETTINGS["portal_private_key"]
+	cert_path = WS_SECURITY_SETTINGS["cert"]
+	
+	client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
+
+	# read the output of a program
+	result = ''
+	IO.popen("echo \"#{soap_response}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path}" ) {|readme|
+	    while s = readme.gets do
+		result = result + s	
+	    end
+	}
+	render :xml => result
+    end
+
+     # Render a ecrypted SOAP response	
+    def _render_sign_encrypt_soap(result, options)
+      @namespace  = NAMESPACE
+      @operation  = soap_action = request.env['wash_out.soap_action']
+      action_spec = self.class.soap_actions[soap_action][:out].clone
+      result = { 'value' => result } unless result.is_a? Hash
+      result = HashWithIndifferentAccess.new(result)
+      inject = lambda {|data, spec|
+        spec.each do |param|
+          if param.struct?
+            inject.call(data[param.name], param.map)
+          else
+            param.value = data[param.name]
+          end
+        end
+      }
+	soap_response = render_to_string :template => 'wash_with_soap/response',
+             :locals => { :result => inject.call(result, action_spec) }
+	soap_response.gsub!(/\n/m, '\n')
+	soap_response.gsub!(/"/, '\"')
+	
+	# php script path
+	mydir = File.dirname(__FILE__)
+	php_script_file = mydir + "/ws_security_php/sign_encrypt_soap.php"
+
+	# keys filename from rails_app/config/*.yml
+	private_key_path = WS_SECURITY_SETTINGS["portal_private_key"]
+	cert_path = WS_SECURITY_SETTINGS["cert"]
+	
+	client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
+
+	# read the output of a program
+	result = ''
+	IO.popen("echo \"#{soap_response}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path}" ) {|readme|
 	    while s = readme.gets do
 		result = result + s	
 	    end
