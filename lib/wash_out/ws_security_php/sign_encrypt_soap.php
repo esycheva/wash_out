@@ -36,7 +36,6 @@ $token = $objWSSE->addBinaryToken(file_get_contents($cert_file));
 /* Attach pointer to Signature */
 $objWSSE->attachTokentoSig($token);
 
-
 $objKey = new XMLSecurityKey(XMLSecurityKey::AES128_CBC);
 $objKey->generateSessionKey();
         
