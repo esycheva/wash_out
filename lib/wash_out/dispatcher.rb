@@ -24,6 +24,13 @@ module WashOut
       Nori.convert_tags_to { |tag| tag.snakecase.to_sym }
 
       params = Nori.parse(request.body.read)
+
+
+      unless params[:envelope][:body][:encrypted_data].blank?
+	request.body.rewind
+        params = Nori.parse(XMLSec.decode(request.body.read, WS_SECURITY_SETTINGS["private_key"], WS_SECURITY_SETTINGS["cert"]))
+      end	
+
       xml_data = params[:envelope][:body][soap_action.underscore.to_sym] || {}
 
       strip_empty_nodes = lambda{|hash|
@@ -111,7 +118,7 @@ module WashOut
 	php_script_file = mydir + "/ws_security_php/sign_soap.php"
 
 	# keys filename from rails_app/config/*.yml
-	private_key_path = WS_SECURITY_SETTINGS["portal_private_key"]
+	private_key_path = WS_SECURITY_SETTINGS["private_key"]
 	cert_path = WS_SECURITY_SETTINGS["cert"]
 
 	# read the output of a program
@@ -150,7 +157,7 @@ module WashOut
 	php_script_file = mydir + "/ws_security_php/encrypt_soap.php"
 
 	# keys filename from rails_app/config/*.yml
-	private_key_path = WS_SECURITY_SETTINGS["portal_private_key"]
+	private_key_path = WS_SECURITY_SETTINGS["private_key"]
 	cert_path = WS_SECURITY_SETTINGS["cert"]
 	
 	client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
@@ -191,7 +198,7 @@ module WashOut
 	php_script_file = mydir + "/ws_security_php/sign_encrypt_soap.php"
 
 	# keys filename from rails_app/config/*.yml
-	private_key_path = WS_SECURITY_SETTINGS["portal_private_key"]
+	private_key_path = WS_SECURITY_SETTINGS["private_key"]
 	cert_path = WS_SECURITY_SETTINGS["cert"]
 	
 	client_cert_path = WS_SECURITY_SETTINGS["client_cert"]

@@ -3,6 +3,7 @@ require 'wash_out/param'
 require 'wash_out/dispatcher'
 require 'wash_out/soap'
 require 'wash_out/router'
+require 'wash_out/xml_sec'
 
 # php scripts
 #require 'wash_out/ws_security_php/soap-wsse.php'
