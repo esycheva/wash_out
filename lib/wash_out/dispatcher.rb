@@ -88,34 +88,18 @@ module WashOut
         end
       }
 
+      soap_response = render_to_string :template => 'wash_with_soap/response',
+             :locals => { :result => inject.call(result, action_spec) }
+
       if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt"
-        soap_response = render_to_string :template => 'wash_with_soap/response',
-             :locals => { :result => inject.call(result, action_spec) }
+        soap_response = ws_security_apply(soap_response, options)
+      end
 
-        soap_response.gsub!(/\n/m, '\n')
-        soap_response.gsub!(/"/, '\"')
-
-        # php script path
-        mydir = File.dirname(__FILE__)
-        php_script_file = mydir + "/ws_security_php/ws_security.php"
-
-        # keys filename from rails_app/config/*.yml
-        private_key_path = WS_SECURITY_SETTINGS["private_key"]
-        cert_path = WS_SECURITY_SETTINGS["cert"]
-        client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
-
-        # read the output of a program
-        result = ''
-        IO.popen("echo \"#{soap_response}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path} #{options[:ws_security]}" ) do |readme|
-          while s = readme.gets do
-            result = result + s
-          end
-	      end
-	      render :xml => result
-
+      if is_exception?(soap_response)
+        Rails.logger.error "PHP_SCRIPT_ERROR #{ws_security_response}"
+        render_soap_error("php_script_error")
       else
-        render :template => 'wash_with_soap/response',
-             :locals => { :result => inject.call(result, action_spec) }
+          render :xml => soap_response
       end
     end
 
@@ -128,10 +112,11 @@ module WashOut
     #
     # Rails do not support sequental rescue_from handling, that is, rescuing an
     # exception from a rescue_from handler. Hence this function is a public API.
-    def render_soap_error(message)
+    def render_soap_error(message, options = {})
       render :template => 'wash_with_soap/error', :status => 500,
              :locals => { :error_message => message }
     end
+
 
     private
 
@@ -143,6 +128,34 @@ module WashOut
 
     def _render_soap_exception(error)
       render_soap_error(error.message)
+    end
+
+    def ws_security_apply(soap_response_str, options)
+      # processing soap response
+      soap_response_str.gsub!(/\n/m, '\n')
+      soap_response_str.gsub!(/"/, '\"')
+
+      # php script path
+      mydir = File.dirname(__FILE__)
+      php_script_file = mydir + "/ws_security_php/ws_security.php"
+
+      # keys filename from rails_app/config/*.yml
+      private_key_path = WS_SECURITY_SETTINGS["private_key"]
+      cert_path = WS_SECURITY_SETTINGS["cert"]
+      client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
+
+      # read the output of a program
+      result = ''
+      IO.popen("echo \"#{soap_response_str}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path} #{options[:ws_security]}" ) do |readme|
+        while s = readme.gets do
+          result = result + s
+        end
+      end
+      result
+    end
+
+    def is_exception?(result)
+      !result.scan("exception").blank?
     end
   end
 end
