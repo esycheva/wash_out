@@ -91,7 +91,7 @@ module WashOut
       soap_response = render_to_string :template => 'wash_with_soap/response',
              :locals => { :result => inject.call(result, action_spec) }
 
-      if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt"
+      if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt" || options[:ws_security] == "encrypt_sign"
         soap_response = ws_security_apply(soap_response, options)
       end
 

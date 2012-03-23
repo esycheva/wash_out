@@ -17,7 +17,6 @@ try {
         }
         fclose($in);
 
-
         $doc = new DOMDocument;
         $doc->loadXML($text);
 
@@ -66,6 +65,23 @@ try {
             $objWSSE->encryptSoapDoc($siteKey, $objKey, $options);
 
         }
+	elseif ($security_type == "encrypt_sign"){
+	    $oKey = new XMLSecurityKey(XMLSecurityKey::AES128_CBC);
+            $oKey->generateSessionKey();
+            $options = array("KeyInfo" => array("X509SubjectKeyIdentifier" => true));
+            $objWSSE->encryptSoapDoc($siteKey, $oKey, $options);
+
+	    /* Sign the message - also signs appropraite WS-Security items */
+            $options = array("insertBefore" => FALSE);
+            $objWSSE->signSoapDoc($objKey, $options);
+
+            /* Add certificate (BinarySecurityToken) to the message */
+            $token = $objWSSE->addBinaryToken(file_get_contents($cert_file));
+
+            /* Attach pointer to Signature */
+            $objWSSE->attachTokentoSig($token);
+	    
+	} 
 
         /* returns signed document to STDOUT*/
         echo $objWSSE->saveXML();
