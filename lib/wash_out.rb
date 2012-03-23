@@ -26,22 +26,6 @@ ActionController::Renderers.add :soap do |what, options|
   _render_soap(what, options)
 end
 
-
-Mime::Type.register "application/soap+xml", :sign_soap
-ActionController::Renderers.add :sign_soap do |what, options|
-  _render_sign_soap(what, options)
-end
-
-Mime::Type.register "application/soap+xml", :encrypt_soap
-ActionController::Renderers.add :encrypt_soap do |what, options|
-  _render_encrypt_soap(what, options)
-end
-
-Mime::Type.register "application/soap+xml", :sign_encrypt_soap
-ActionController::Renderers.add :sign_encrypt_soap do |what, options|
-  _render_sign_encrypt_soap(what, options)
-end
-
 module ActionView
   class Base
     cattr_accessor :washout_namespace

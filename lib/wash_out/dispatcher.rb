@@ -27,7 +27,7 @@ module WashOut
 
 
       unless params[:envelope][:body][:encrypted_data].blank?
-	request.body.rewind
+	      request.body.rewind
         params = Nori.parse(XMLSec.decode(request.body.read, WS_SECURITY_SETTINGS["private_key"], WS_SECURITY_SETTINGS["cert"]))
       end	
 
@@ -87,132 +87,37 @@ module WashOut
           end
         end
       }
-	
-      render :template => 'wash_with_soap/response',
+
+      if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt"
+        soap_response = render_to_string :template => 'wash_with_soap/response',
              :locals => { :result => inject.call(result, action_spec) }
-    end
-	
-    # Render a signed SOAP response	
-    def _render_sign_soap(result, options)
-      @namespace  = NAMESPACE
-      @operation  = soap_action = request.env['wash_out.soap_action']
-      action_spec = self.class.soap_actions[soap_action][:out].clone
-      result = { 'value' => result } unless result.is_a? Hash
-      result = HashWithIndifferentAccess.new(result)
-      inject = lambda {|data, spec|
-        spec.each do |param|
-          if param.struct?
-            inject.call(data[param.name], param.map)
-          else
-            param.value = data[param.name]
+
+        soap_response.gsub!(/\n/m, '\n')
+        soap_response.gsub!(/"/, '\"')
+
+        # php script path
+        mydir = File.dirname(__FILE__)
+        php_script_file = mydir + "/ws_security_php/ws_security.php"
+
+        # keys filename from rails_app/config/*.yml
+        private_key_path = WS_SECURITY_SETTINGS["private_key"]
+        cert_path = WS_SECURITY_SETTINGS["cert"]
+        client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
+
+        # read the output of a program
+        result = ''
+        IO.popen("echo \"#{soap_response}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path} #{options[:ws_security]}" ) do |readme|
+          while s = readme.gets do
+            result = result + s
           end
-        end
-      }
-	soap_response = render_to_string :template => 'wash_with_soap/response',
+	      end
+	      render :xml => result
+
+      else
+        render :template => 'wash_with_soap/response',
              :locals => { :result => inject.call(result, action_spec) }
-	soap_response.gsub!(/\n/m, '\n')
-	soap_response.gsub!(/"/, '\"')
-	
-	# php script path
-	mydir = File.dirname(__FILE__)
-	php_script_file = mydir + "/ws_security_php/sign_soap.php"
-
-	# keys filename from rails_app/config/*.yml
-	private_key_path = WS_SECURITY_SETTINGS["private_key"]
-	cert_path = WS_SECURITY_SETTINGS["cert"]
-
-	# read the output of a program
-	result = ''
-	IO.popen("echo \"#{soap_response}\" | #{php_script_file} #{private_key_path} #{cert_path}" ) {|readme|
-	    while s = readme.gets do
-		result = result + s	
-	    end
-	}
-	render :xml => result
+      end
     end
-
-    # Render a ecrypted SOAP response	
-    def _render_encrypt_soap(result, options)
-      @namespace  = NAMESPACE
-      @operation  = soap_action = request.env['wash_out.soap_action']
-      action_spec = self.class.soap_actions[soap_action][:out].clone
-      result = { 'value' => result } unless result.is_a? Hash
-      result = HashWithIndifferentAccess.new(result)
-      inject = lambda {|data, spec|
-        spec.each do |param|
-          if param.struct?
-            inject.call(data[param.name], param.map)
-          else
-            param.value = data[param.name]
-          end
-        end
-      }
-	soap_response = render_to_string :template => 'wash_with_soap/response',
-             :locals => { :result => inject.call(result, action_spec) }
-	soap_response.gsub!(/\n/m, '\n')
-	soap_response.gsub!(/"/, '\"')
-	
-	# php script path
-	mydir = File.dirname(__FILE__)
-	php_script_file = mydir + "/ws_security_php/encrypt_soap.php"
-
-	# keys filename from rails_app/config/*.yml
-	private_key_path = WS_SECURITY_SETTINGS["private_key"]
-	cert_path = WS_SECURITY_SETTINGS["cert"]
-	
-	client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
-
-	# read the output of a program
-	result = ''
-	IO.popen("echo \"#{soap_response}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path}" ) {|readme|
-	    while s = readme.gets do
-		result = result + s	
-	    end
-	}
-	render :xml => result
-    end
-
-     # Render a ecrypted SOAP response	
-    def _render_sign_encrypt_soap(result, options)
-      @namespace  = NAMESPACE
-      @operation  = soap_action = request.env['wash_out.soap_action']
-      action_spec = self.class.soap_actions[soap_action][:out].clone
-      result = { 'value' => result } unless result.is_a? Hash
-      result = HashWithIndifferentAccess.new(result)
-      inject = lambda {|data, spec|
-        spec.each do |param|
-          if param.struct?
-            inject.call(data[param.name], param.map)
-          else
-            param.value = data[param.name]
-          end
-        end
-      }
-	soap_response = render_to_string :template => 'wash_with_soap/response',
-             :locals => { :result => inject.call(result, action_spec) }
-	soap_response.gsub!(/\n/m, '\n')
-	soap_response.gsub!(/"/, '\"')
-	
-	# php script path
-	mydir = File.dirname(__FILE__)
-	php_script_file = mydir + "/ws_security_php/sign_encrypt_soap.php"
-
-	# keys filename from rails_app/config/*.yml
-	private_key_path = WS_SECURITY_SETTINGS["private_key"]
-	cert_path = WS_SECURITY_SETTINGS["cert"]
-	
-	client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
-
-	# read the output of a program
-	result = ''
-	IO.popen("echo \"#{soap_response}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path}" ) {|readme|
-	    while s = readme.gets do
-		result = result + s	
-	    end
-	}
-	render :xml => result
-    end
-		
 
     # This action is a fallback for all undefined SOAP actions.
     def _invalid_action
