@@ -4,7 +4,7 @@ require "rexml/xpath"
 require "openssl"
 require "xmlcanonicalizer"
 require "digest/sha1"
-require "dispatcher"
+
 
 module XMLSec
   # decode
