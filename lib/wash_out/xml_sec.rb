@@ -4,6 +4,7 @@ require "rexml/xpath"
 require "openssl"
 require "xmlcanonicalizer"
 require "digest/sha1"
+require "dispatcher"
 
 module XMLSec
   # decode
@@ -16,7 +17,7 @@ module XMLSec
     subject_key_id_element = REXML::XPath.first(doc, "//wsse:KeyIdentifier")
 
     if subject_key_id_element.blank?
-      return false
+      raise WashOut::Dispatcher::SOAPError, "The Subject Key Element is blank."
     else
       subject_key_id = subject_key_id_element.text
     end
@@ -27,11 +28,11 @@ module XMLSec
     cert_subject_key_id = Digest::SHA1.base64digest cert.public_key.to_der
 
     unless subject_key_id == cert_subject_key_id
-      return false
+      raise WashOut::Dispatcher::SOAPError, "The Subject Key Element is bad."
     end
 
     unless cert.check_private_key(private_key)
-      return false
+      raise WashOut::Dispatcher::SOAPError, "The Certificate error."
     end
 
     c1 = REXML::XPath.first(doc, '//xenc:EncryptedKey//xenc:CipherValue', 'xenc' => 'http://www.w3.org/2001/04/xmlenc#')
@@ -48,7 +49,7 @@ module XMLSec
     begin
       cipherkey = RSA::OAEP.decode rsak, v1s
     rescue RSA::OAEP::DecodeError
-      return false
+      raise WashOut::Dispatcher::SOAPError, "The decrypt error."
     end
 
     encrypted_data_uri.each do |uri|

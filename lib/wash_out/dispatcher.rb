@@ -25,10 +25,25 @@ module WashOut
 
       params = Nori.parse(request.body.read)
 
+      request_doc = REXML::Document.new(request.body.read)
+      encrypted_elements = REXML::XPath.match(request_doc, "//xenc:EncryptedData", 'xenc' => 'http://www.w3.org/2001/04/xmlenc#')
 
-      unless params[:envelope][:body][:encrypted_data].blank?
+      unless encrypted_elements.blank?
 	      request.body.rewind
-        params = Nori.parse(XMLSec.decrypt(request.body.read, WS_SECURITY_SETTINGS["private_key"], WS_SECURITY_SETTINGS["cert"]))
+
+        begin
+	        decrypted_request = XMLSec.decrypt(request.body.read, WS_SECURITY_SETTINGS["private_key"], WS_SECURITY_SETTINGS["cert"])
+        rescue => e
+          render_soap_error(e.message)
+        end
+	      decrypted_doc = REXML::Document.new decrypted_request
+	      sign_els = REXML::XPath.first(decrypted_doc, "//ds:Signature", {"ds"=>"http://www.w3.org/2000/09/xmldsig#"})
+
+        unless sign_els.blank?
+		      render_soap_error('The signature is invalid.') unless XMLSec.verify_sign(decrypted_request)
+        end
+
+        params = Nori.parse(decrypted_request)
       end	
 
       xml_data = params[:envelope][:body][soap_action.underscore.to_sym] || {}
