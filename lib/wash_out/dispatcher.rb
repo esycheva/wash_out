@@ -28,7 +28,7 @@ module WashOut
 
       unless params[:envelope][:body][:encrypted_data].blank?
 	      request.body.rewind
-        params = Nori.parse(XMLSec.decode(request.body.read, WS_SECURITY_SETTINGS["private_key"], WS_SECURITY_SETTINGS["cert"]))
+        params = Nori.parse(XMLSec.decrypt(request.body.read, WS_SECURITY_SETTINGS["private_key"], WS_SECURITY_SETTINGS["cert"]))
       end	
 
       xml_data = params[:envelope][:body][soap_action.underscore.to_sym] || {}

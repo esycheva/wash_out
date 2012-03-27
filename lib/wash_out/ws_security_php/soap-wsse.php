@@ -404,7 +404,7 @@ class WSSESoap {
                         $type = XMLSecEnc::Element;
                         $name = $node->localName;
                         if ($name == "Body") {
-                                $type = XMLSecEnc::Content;
+                                $type = XMLSecEnc::Element;
                         }
                         $enc->addReference($name, $node, $type);
                 }
