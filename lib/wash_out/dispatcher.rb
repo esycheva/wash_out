@@ -22,25 +22,24 @@ module WashOut
       convert = Nori.convert_tags?
       Nori.strip_namespaces = true
       Nori.convert_tags_to { |tag| tag.snakecase.to_sym }
+	
+      body = request.body.read
+      params = Nori.parse(body)
 
-      params = Nori.parse(request.body.read)
-
-      request_doc = REXML::Document.new(request.body.read)
+      request_doc = REXML::Document.new(body)
       encrypted_elements = REXML::XPath.match(request_doc, "//xenc:EncryptedData", 'xenc' => 'http://www.w3.org/2001/04/xmlenc#')
 
       unless encrypted_elements.blank?
-	      request.body.rewind
-
         begin
-	        decrypted_request = XMLSec.decrypt(request.body.read, WS_SECURITY_SETTINGS["private_key"], WS_SECURITY_SETTINGS["cert"])
+	  decrypted_request = XMLSec.decrypt(body, WS_SECURITY_SETTINGS["private_key"], WS_SECURITY_SETTINGS["cert"])
         rescue => e
           render_soap_error(e.message)
         end
-	      decrypted_doc = REXML::Document.new decrypted_request
-	      sign_els = REXML::XPath.first(decrypted_doc, "//ds:Signature", {"ds"=>"http://www.w3.org/2000/09/xmldsig#"})
+	decrypted_doc = REXML::Document.new decrypted_request
+	sign_els = REXML::XPath.first(decrypted_doc, "//ds:Signature", {"ds"=>"http://www.w3.org/2000/09/xmldsig#"})
 
         unless sign_els.blank?
-		      render_soap_error('The signature is invalid.') unless XMLSec.verify_sign(decrypted_request)
+          render_soap_error('The signature is invalid.') unless XMLSec.verify_sign(decrypted_request)
         end
 
         params = Nori.parse(decrypted_request)
@@ -106,7 +105,7 @@ module WashOut
       soap_response = render_to_string :template => 'wash_with_soap/response',
              :locals => { :result => inject.call(result, action_spec) }
 
-      if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt" || options[:ws_security] == "encrypt_sign"
+      if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt"
         soap_response = ws_security_apply(soap_response, options)
       end
 
@@ -127,7 +126,7 @@ module WashOut
     #
     # Rails do not support sequental rescue_from handling, that is, rescuing an
     # exception from a rescue_from handler. Hence this function is a public API.
-    def render_soap_error(message, options = {})
+    def render_soap_error(message)
       render :template => 'wash_with_soap/error', :status => 500,
              :locals => { :error_message => message }
     end
