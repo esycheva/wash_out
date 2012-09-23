@@ -105,13 +105,18 @@ module WashOut
       soap_response = render_to_string :template => 'wash_with_soap/response',
              :locals => { :result => inject.call(result, action_spec) }
 
+Rails.logger.error soap_response
+
       if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt"
         soap_response = ws_security_apply(soap_response, options)
       end
+      
+
 
       if is_exception?(soap_response)
         Rails.logger.error "PHP_SCRIPT_ERROR #{ws_security_response}"
-        render_soap_error("php_script_error")
+        render :template => 'wash_with_soap/error', :status => 500,
+             :locals => { :error_message => "php_script_error" }
       else
           render :xml => soap_response
       end
@@ -126,9 +131,17 @@ module WashOut
     #
     # Rails do not support sequental rescue_from handling, that is, rescuing an
     # exception from a rescue_from handler. Hence this function is a public API.
-    def render_soap_error(message)
-      render :template => 'wash_with_soap/error', :status => 500,
+    def render_soap_error(message, options = {})
+      @namespace = NAMESPACE
+      soap_error_response = render_to_string :template => 'wash_with_soap/error', :status => 500,
              :locals => { :error_message => message }
+	Rails.logger.error soap_error_response
+
+      if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt"
+        soap_error_response = ws_security_apply(soap_error_response, options)
+      end
+
+      render :xml => soap_error_response
     end
 
 
