@@ -27,6 +27,12 @@ module WashOut
       params = Nori.parse(body)
 
       request_doc = REXML::Document.new(body)
+      sign_els = REXML::XPath.first(request_doc, "//ds:Signature", {"ds"=>"http://www.w3.org/2000/09/xmldsig#"})
+
+      unless sign_els.blank?
+        render_soap_error('The signature is invalid.') unless XMLSec.verify_sign(body)
+      end
+	
       encrypted_elements = REXML::XPath.match(request_doc, "//xenc:EncryptedData", 'xenc' => 'http://www.w3.org/2001/04/xmlenc#')
 
       unless encrypted_elements.blank?
@@ -105,8 +111,6 @@ module WashOut
       soap_response = render_to_string :template => 'wash_with_soap/response',
              :locals => { :result => inject.call(result, action_spec) }
 
-Rails.logger.error soap_response
-
       if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt"
         soap_response = ws_security_apply(soap_response, options)
       end
@@ -135,7 +139,6 @@ Rails.logger.error soap_response
       @namespace = NAMESPACE
       soap_error_response = render_to_string :template => 'wash_with_soap/error', :status => 500,
              :locals => { :error_message => message }
-	Rails.logger.error soap_error_response
 
       if options[:ws_security] == "encrypt" || options[:ws_security] == "sign" || options[:ws_security] == "sign_encrypt"
         soap_error_response = ws_security_apply(soap_error_response, options)
