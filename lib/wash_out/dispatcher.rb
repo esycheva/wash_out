@@ -1,4 +1,5 @@
 require 'nori'
+require 'openssl'
 
 module WashOut
   # The WashOut::Dispatcher module should be included in a controller acting
@@ -174,6 +175,10 @@ module WashOut
       cert_path = WS_SECURITY_SETTINGS["cert"]
       client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
 
+      # add X509v3 Subject Key Identifier extension to client certificate
+      cert_string = cert_str(client_cert_path)
+      write(client_cert_path)
+
       # read the output of a program
       result = ''
       IO.popen("echo \"#{soap_response_str}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path} #{options[:ws_security]}" ) do |readme|
@@ -183,6 +188,19 @@ module WashOut
       end
       result
     end
+
+    # return cert string with extension
+    def self.cert_str(path_to_cert)
+      c = OpenSSL::X509::Certificate.new( File.read path_to_cert)
+      ef = OpenSSL::X509::ExtensionFactory.new(nil, c)
+      c.add_extension(ef.create_extension 'subjectKeyIdentifier', 'hash')
+      c.to_pem
+    end	
+    
+    # write to file
+    def self.write(pem_str, output_filename)
+      File.open(output_filename, 'w:windows-1251'){|file| file.write pem_str}
+    end 
 
     def is_exception?(result)
       !result.scan("exception").blank?
