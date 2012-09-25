@@ -8,6 +8,7 @@ try {
         $cert_file = $argv[2];
         $service_cert = $argv[3];
         $security_type = $argv[4];
+	$ski = $argv[5];
 
         /* Read from stdin */
         $text = '';
@@ -47,7 +48,7 @@ try {
             $objKey = new XMLSecurityKey(XMLSecurityKey::AES128_CBC);
             $objKey->generateSessionKey();
             $options = array("KeyInfo" => array("X509SubjectKeyIdentifier" => true));
-            $objWSSE->encryptSoapDoc($siteKey, $objKey, $options);
+            $objWSSE->encryptSoapDoc($siteKey, $objKey, $ski, $options);
         }
         elseif ($security_type == "sign_encrypt"){
             /* Sign the message - also signs appropraite WS-Security items */
@@ -62,7 +63,7 @@ try {
             $objKey = new XMLSecurityKey(XMLSecurityKey::AES128_CBC);
             $objKey->generateSessionKey();
             $options = array("KeyInfo" => array("X509SubjectKeyIdentifier" => true));
-            $objWSSE->encryptSoapDoc($siteKey, $objKey, $options);
+            $objWSSE->encryptSoapDoc($siteKey, $objKey, $ski, $options);
 
         } 
 

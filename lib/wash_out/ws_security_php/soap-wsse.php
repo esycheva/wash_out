@@ -266,7 +266,7 @@ class WSSESoap {
         }
     }
 
-    public function addEncryptedKey($node, $key, $token, $options = NULL) {
+    public function addEncryptedKey($node, $key, $token, $ski, $options = NULL) {
         if (! $key->encKey) { 
             return FALSE; 
         } 
@@ -317,7 +317,7 @@ class WSSESoap {
                                     $reference->setAttribute("EncodingType", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary");
                                     $tokenRef->appendChild($reference);
                                         $x509 = openssl_x509_parse($token->getX509Certificate());
-                                        $keyid = $x509["extensions"]["subjectKeyIdentifier"];
+                                        $keyid = $ski;
                                         $arkeyid = split(":", $keyid);
                                         $data = "";
                                         foreach ($arkeyid AS $hexchar) {
@@ -358,7 +358,7 @@ class WSSESoap {
         $dataref->setAttribute('URI', '#'.$guid); 
     } 
 
-    public function EncryptBody($siteKey, $objKey, $token) { 
+    public function EncryptBody($siteKey, $objKey, $token, $ski) { 
 
         $enc = new XMLSecEnc(); 
         foreach ($this->envelope->childNodes AS $node) { 
@@ -384,12 +384,12 @@ class WSSESoap {
         if ($refNode) { 
             $refNode = $refNode->nextSibling; 
         } 
-        if ($this->addEncryptedKey($encNode, $enc, $token)) { 
+        if ($this->addEncryptedKey($encNode, $enc, $ski,  $token)) { 
             $this->AddReference($enc->encKey, $guid); 
         } 
     } 
      
-    public function encryptSoapDoc($siteKey, $objKey, $options=NULL, $encryptSignature=TRUE) {
+    public function encryptSoapDoc($siteKey, $objKey, $ski, $options=NULL, $encryptSignature=TRUE) {
 
                 $enc = new XMLSecEnc();
 
@@ -415,7 +415,7 @@ class WSSESoap {
                 
                 $nodes = $xpath->query('//*[local-name()="Security"]');
                 $signode = $nodes->item(0);
-                $this->addEncryptedKey($signode, $enc, $siteKey, $options);
+                $this->addEncryptedKey($signode, $enc, $siteKey, $ski, $options);
     }
     
     public function decryptSoapDoc($doc, $options) {

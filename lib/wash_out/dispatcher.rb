@@ -176,12 +176,12 @@ module WashOut
       client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
 
       # add X509v3 Subject Key Identifier extension to client certificate
-      cert_string = cert_str(client_cert_path)
-      write(client_cert_path)
+      client_cert = OpenSSL::X509::Certificate.new(File.read(client_cert_path))
+      ski = Digest::SHA1.base64digest client_cert.public_key.to_der
 
       # read the output of a program
       result = ''
-      IO.popen("echo \"#{soap_response_str}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path} #{options[:ws_security]}" ) do |readme|
+      IO.popen("echo \"#{soap_response_str}\" | #{php_script_file} #{private_key_path} #{cert_path} #{client_cert_path} #{options[:ws_security]} #{ski}" ) do |readme|
         while s = readme.gets do
           result = result + s
         end
