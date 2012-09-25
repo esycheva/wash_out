@@ -176,8 +176,8 @@ module WashOut
       client_cert_path = WS_SECURITY_SETTINGS["client_cert"]
 
       # add X509v3 Subject Key Identifier extension to client certificate
-      client_cert = OpenSSL::X509::Certificate.new(File.read(cert_path))
-      ski = Digest::SHA1.base64digest client_cert.public_key.to_der
+      cert = OpenSSL::X509::Certificate.new(File.read(cert_path))
+      ski = Digest::SHA1.base64digest cert.public_key.to_der
 
       # read the output of a program
       result = ''
