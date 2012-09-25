@@ -318,12 +318,12 @@ class WSSESoap {
                                     $tokenRef->appendChild($reference);
                                         $x509 = openssl_x509_parse($token->getX509Certificate());
                                         $keyid = $ski;
-                                        $arkeyid = split(":", $keyid);
-                                        $data = "";
-                                        foreach ($arkeyid AS $hexchar) {
-                                            $data .= chr(hexdec($hexchar));
-                                        }
-                                        $dataNode = new DOMText(base64_encode($data));
+                                        #$arkeyid = split(":", $keyid);
+                                        #$data = "";
+                                        #foreach ($arkeyid AS $hexchar) {
+                                        #    $data .= chr(hexdec($hexchar));
+                                        #}
+                                        $dataNode = new DOMText($keyid);
                                         $reference->appendChild($dataNode);
                     return TRUE;
                 }
